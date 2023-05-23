@@ -11,13 +11,12 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 @ControllerAdvice
 class RestResponseEntityExceptionHandler : ResponseEntityExceptionHandler() {
 
-    // private val logger = KotlinLogging.logger {}
-
     @ExceptionHandler(value = [Exception::class])
     fun handleUnhandledException(
         ex: Exception, request: WebRequest
     ): ResponseEntity<Any?>? {
-        logger.error { "An exception was thrown: ${ex.message}" }
+        logger.error { "An exception was thrown: ${ex.message}. Exception: $ex" }
+
         return handleExceptionInternal(
             ex, "Unknown error occurred", HttpHeaders(), HttpStatus.INTERNAL_SERVER_ERROR, request
         )

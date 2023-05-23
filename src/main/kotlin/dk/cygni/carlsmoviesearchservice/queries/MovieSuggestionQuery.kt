@@ -1,5 +1,5 @@
 package dk.cygni.carlsmoviesearchservice.queries
 
-data class UserByIdQuery(
+data class MovieSuggestionQuery(
     val userid: Long
 )

@@ -6,5 +6,5 @@ import org.springframework.data.mongodb.core.mapping.Document
 
 @Document(collection = "user")
 abstract class UserEvent(
-    @Indexed open var userid: Long
+    @Indexed var userid: Long
 ) : Event()

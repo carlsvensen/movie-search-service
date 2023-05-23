@@ -5,6 +5,6 @@ import org.springframework.data.mongodb.core.index.Indexed
 import org.springframework.data.mongodb.core.mapping.Document
 
 @Document(collection = "movie")
-open class MovieEvent(
-    @Indexed open var tconst: String
+abstract class MovieEvent(
+    @Indexed var tconst: String
 ) : Event()

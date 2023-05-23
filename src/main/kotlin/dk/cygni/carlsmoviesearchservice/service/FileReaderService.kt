@@ -1,122 +1,92 @@
 package dk.cygni.carlsmoviesearchservice.service
 
 import dk.cygni.carlsmoviesearchservice.aggregate.MovieAggregate
-import dk.cygni.carlsmoviesearchservice.commands.CreateMovieCommand
-import dk.cygni.carlsmoviesearchservice.commands.UpdateRatingCommand
+import dk.cygni.carlsmoviesearchservice.commands.movie.CreateMovieCommand
+import dk.cygni.carlsmoviesearchservice.commands.movie.UpdateRatingCommand
 import mu.KotlinLogging
-import org.springframework.beans.factory.annotation.Value
+import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
+import org.springframework.web.server.ResponseStatusException
 import java.io.File
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.concurrent.thread
 
 @Service
-class FileReaderService(
-    private val movieAggregate: MovieAggregate
-) {
+class FileReaderService(private val movieAggregate: MovieAggregate) {
+
     private val logger = KotlinLogging.logger {}
 
-    @Value(value = "#{filenameProperties.movies}")
-    private lateinit var movieFilepath: String
+    private val movieState: FileReaderState = FileReaderState("MOVIEFILE")
+    private val ratingState: FileReaderState = FileReaderState("RATINGFILE")
 
-    @Value(value = "#{filenameProperties.ratings}")
-    private lateinit var ratingFilepath: String
-
-    private val readingMovieFile: AtomicBoolean = AtomicBoolean(false)
-    private var counterMovie: Int = 0
-    private var startTimeMovie: Long = 0
-    private var startTimeBatchMovie: Long = 0
-
-    private val readingRatingFile: AtomicBoolean = AtomicBoolean(false)
-    private var counterRating: Int = 0
-    private var startTimeRating: Long = 0
-    private var startTimeBatchRating: Long = 0
-
-    fun readMovieFile() {
-        if (!readingMovieFile.compareAndSet(false, true)) {
-            throw IllegalArgumentException("Already reading movie file")
-        }
+    fun readMovieFile(filename: String) {
+        movieState.startReading()
 
         thread(start = true) {
             try {
-                startTimeMovie = System.currentTimeMillis()
-                startTimeBatchMovie = System.currentTimeMillis()
-                File(movieFilepath).readLines().drop(1).forEach { line -> handleMovieLine(line) }
-                logger.info { "Finished reading $counterMovie movies in ${(System.currentTimeMillis() - startTimeMovie) / 1000} sec" }
+                File("./$filename")
+                    .readLines()
+                    .drop(1) // Discards headers
+                    .forEach { line -> handleMovieLine(line) }
 
             } catch (e: Exception) {
                 logger.error { "Error while reading movie file ${e.message}" }
 
             } finally {
-                readingMovieFile.compareAndSet(true, false)
+                movieState.finishReading()
             }
         }
     }
 
-    fun readRatingFile() {
-        if (!readingRatingFile.compareAndSet(false, true)) {
-            throw IllegalArgumentException("Already reading rating file")
-        }
+    fun readRatingFile(filename: String) {
+        ratingState.startReading()
 
         thread(start = true) {
             try {
-                startTimeRating = System.currentTimeMillis()
-                startTimeBatchRating = System.currentTimeMillis()
-                File(ratingFilepath).readLines().drop(1).forEach { line -> handleRatingLine(line) }
-                logger.info { "Finished reading $counterRating ratings in ${(System.currentTimeMillis() - startTimeRating) / 1000} sec" }
+                File("./$filename")
+                    .readLines()
+                    .drop(1) // Discards headers
+                    .forEach { line -> handleRatingLine(line) }
 
             } catch (e: Exception) {
                 logger.error { "Error while reading rating file ${e.message}" }
 
             } finally {
-                readingRatingFile.set(false)
+                ratingState.finishReading()
             }
         }
     }
 
     private fun handleMovieLine(line: String) {
-        counterMovie++
-        val seperatedLine = line.split("\t")
-
-        movieAggregate.handleUpdateMovie(
-            CreateMovieCommand(
-                tconst = seperatedLine[0],
-                titleType = readLineAndDiscardEmptyPlaceholder(seperatedLine[1]),
-                primaryTitle = readLineAndDiscardEmptyPlaceholder(seperatedLine[2]),
-                originalTitle = readLineAndDiscardEmptyPlaceholder(seperatedLine[3]),
-                isAdult = seperatedLine[4] == "1",
-                startYear = readLineAndDiscardEmptyPlaceholder(seperatedLine[5]),
-                endYear = readLineAndDiscardEmptyPlaceholder(seperatedLine[6]),
-                runtimeMinutes = convertRuntimeMinutes(seperatedLine[7]),
-                genres = seperatedLine[8].split(",").map { readLineAndDiscardEmptyPlaceholder(it) }
+        line.split("\t").run {
+            movieAggregate.handleUpdateMovie(
+                CreateMovieCommand(
+                    tconst = this[0],
+                    titleType = readLineAndDiscardEmptyPlaceholder(this[1]),
+                    primaryTitle = readLineAndDiscardEmptyPlaceholder(this[2]),
+                    originalTitle = readLineAndDiscardEmptyPlaceholder(this[3]),
+                    isAdult = this[4] == "1",
+                    startYear = readLineAndDiscardEmptyPlaceholder(this[5]),
+                    endYear = readLineAndDiscardEmptyPlaceholder(this[6]),
+                    runtimeMinutes = convertRuntimeMinutes(this[7]),
+                    genres = this[8].split(",").map { readLineAndDiscardEmptyPlaceholder(it) }
+                )
             )
-        )
-        if (counterMovie % 1000 == 0) {
-            logger.info {
-                "Handled 1000 rows of movies in ${System.currentTimeMillis() - startTimeBatchMovie} ms, " +
-                        "total count $counterMovie, total time ${(System.currentTimeMillis() - startTimeMovie) / 1000} sec"
-            }
-            startTimeBatchMovie = System.currentTimeMillis()
         }
+        movieState.incrementCounterAndlogProgress()
     }
 
     private fun handleRatingLine(line: String) {
-        counterRating++
-        val seperatedLine = line.split("\t")
-
-        movieAggregate.handleUpdateRating(
-            UpdateRatingCommand(
-                seperatedLine[0], seperatedLine[1].toDouble(), seperatedLine[2].toLong()
+        line.split("\t").run {
+            movieAggregate.handleUpdateRating(
+                UpdateRatingCommand(
+                    tconst = this[0],
+                    averageRating = this[1].toDouble(),
+                    numOfVotes = this[2].toLong()
+                )
             )
-        )
-
-        if (counterRating % 1000 == 0) {
-            logger.info {
-                "Handled 1000 rows of ratings in ${System.currentTimeMillis() - startTimeBatchRating} ms, " +
-                        "total count $counterRating, total time ${(System.currentTimeMillis() - startTimeRating) / 1000} sec"
-            }
-            startTimeBatchRating = System.currentTimeMillis()
         }
+       ratingState.incrementCounterAndlogProgress()
     }
 
     private fun readLineAndDiscardEmptyPlaceholder(value: String): String = if (value == "\\N") "" else value
@@ -127,4 +97,37 @@ class FileReaderService(
         } catch (e: NumberFormatException) {
             null
         }
+}
+
+private class FileReaderState(private val filetype: String) {
+    private val logger = KotlinLogging.logger {}
+
+    private val readingFile: AtomicBoolean = AtomicBoolean(false)
+    private var counter: Int = 0
+    private var startTime: Long = 0
+    private var startTimeBatch: Long = 0
+
+    fun startReading() {
+        if (!readingFile.compareAndSet(false, true)) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "Already reading file")
+        }
+        startTime = System.currentTimeMillis()
+        startTimeBatch = System.currentTimeMillis()
+    }
+
+    fun finishReading() {
+        readingFile.compareAndSet(true, false)
+        logger.info { "$filetype - Finished reading $counter elements in ${(System.currentTimeMillis() - startTime) / 1000} sec" }
+
+    }
+    fun incrementCounterAndlogProgress() {
+        counter++
+        if (counter % 1000 == 0) {
+            logger.info {
+                "$filetype - Handled 1000 elements in ${System.currentTimeMillis() - startTimeBatch} ms, " +
+                        "total count $counter, total time ${(System.currentTimeMillis() - startTime) / 1000} sec"
+            }
+            startTimeBatch = System.currentTimeMillis()
+        }
+    }
 }

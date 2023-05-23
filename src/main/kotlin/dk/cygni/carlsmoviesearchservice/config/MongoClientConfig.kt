@@ -25,8 +25,7 @@ class MongoClientConfig {
 
 @Component
 class InsertListener(
-    private val jmsTemplate: JmsTemplate,
-    private val queueProperties: QueueProperties
+    private val jmsTemplate: JmsTemplate
 ) : CommandListener {
 
     // TODO: Listen to events directly from mongodb
@@ -37,12 +36,12 @@ class InsertListener(
         if (event.commandName == "insert") {
             if (event.command["insert"]!!.asString().value == "movie") {
                 postEventToQueue(
-                    queueProperties.movie,
+                    MOVIE_QUEUE,
                     event.command["documents"]!!.asArray()[0].asDocument()["tconst"]!!.asString().value
                 )
             } else if (event.command["insert"]!!.asString().value == "user") {
                 postEventToQueue(
-                    queueProperties.user,
+                    USER_QUEUE,
                     event.command["documents"]!!.asArray()[0].asDocument()["userid"]!!.asInt64().value
                 )
             }

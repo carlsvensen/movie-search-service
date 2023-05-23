@@ -6,11 +6,12 @@ import org.springframework.data.domain.Pageable
 import org.springframework.data.elasticsearch.annotations.Query
 import org.springframework.data.elasticsearch.repository.ElasticsearchRepository
 import org.springframework.stereotype.Repository
+import java.util.*
 
 @Repository
 interface MovieRepository : ElasticsearchRepository<Movie, String> {
 
-    fun findMovieByTconst(tconst: String): Movie
+    fun findMovieByTconst(tconst: String): Optional<Movie>
 
     @Query("{" +
             "   \"match\": {" +

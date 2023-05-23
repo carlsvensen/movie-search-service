@@ -9,4 +9,6 @@ import java.util.*
 interface UserRepository : ElasticsearchRepository<User, Long> {
 
     fun findUserByUserid(userid: Long): Optional<User>
+
+    fun findUserByUsername(username: String): Optional<User>
 }

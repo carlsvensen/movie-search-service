@@ -1,4 +1,4 @@
-package dk.cygni.carlsmoviesearchservice.commands
+package dk.cygni.carlsmoviesearchservice.commands.movie
 
 import dk.cygni.carlsmoviesearchservice.domain.events.movie.MovieCreatedEvent
 
@@ -14,6 +14,5 @@ data class CreateMovieCommand(
     val genres: List<String>
 )
 
-fun CreateMovieCommand.toMovieEvent(): MovieCreatedEvent {
-    return MovieCreatedEvent(tconst, titleType, primaryTitle, originalTitle, isAdult, startYear, endYear, runtimeMinutes, genres)
-}
+fun CreateMovieCommand.toMovieEvent(): MovieCreatedEvent =
+    MovieCreatedEvent(tconst, titleType, primaryTitle, originalTitle, isAdult, startYear, endYear, runtimeMinutes, genres)

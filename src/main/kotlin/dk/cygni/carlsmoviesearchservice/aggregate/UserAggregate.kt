@@ -1,13 +1,13 @@
 package dk.cygni.carlsmoviesearchservice.aggregate
 
-import dk.cygni.carlsmoviesearchservice.commands.CreateUserCommand
-import dk.cygni.carlsmoviesearchservice.domain.SEQUENCE_NAME_USER
-import dk.cygni.carlsmoviesearchservice.domain.events.user.UserCreatedEvent
+import dk.cygni.carlsmoviesearchservice.commands.user.*
 import dk.cygni.carlsmoviesearchservice.domain.events.user.UserSearchEvent
 import dk.cygni.carlsmoviesearchservice.repository.mongodb.UserReadRepository
 import dk.cygni.carlsmoviesearchservice.repository.mongodb.UserWriteRepository
 import dk.cygni.carlsmoviesearchservice.service.SequenceService
+import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
+import org.springframework.web.server.ResponseStatusException
 
 @Component
 class UserAggregate(
@@ -18,12 +18,28 @@ class UserAggregate(
 
     fun handleCreateUserCommand(createUserCommand: CreateUserCommand) {
         if (userReadRepository.findByUsername(createUserCommand.username).isNotEmpty()) {
-            throw IllegalArgumentException("The username is already in use!")
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "The username is already in use!")
         }
+        userWriteRepository.insert(createUserCommand.toUserCreatedEvent(sequenceService.generateUserId()))
+    }
 
-        userWriteRepository.insert(
-            UserCreatedEvent(sequenceService.generateSequence(SEQUENCE_NAME_USER), createUserCommand.username)
-        )
+    fun handleUpdateUserCommand(updateUserCommand: UpdateUserCommand) {
+        if (userReadRepository.findByUserid(updateUserCommand.userid).isEmpty()) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "No user with userid ${updateUserCommand.userid} exists!")
+        }
+        if (userReadRepository.findByUsername(updateUserCommand.newUsername).isNotEmpty()) {
+            // TODO: Enable reuse of names that are no longer in use.
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "The username ${updateUserCommand.newUsername} is already in use!")
+        }
+        userWriteRepository.insert(updateUserCommand.toUserUpdatedEvent())
+    }
+
+    fun handleDeleteUserCommand(deleteUserCommand: DeleteUserCommand) {
+        if (userReadRepository.findByUserid(deleteUserCommand.userid).isEmpty()) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "No user with userid ${deleteUserCommand.userid} exists!")
+        }
+        // TODO: Delete for real ???
+        userWriteRepository.insert(deleteUserCommand.toUserDeletedEvent())
     }
 
     fun handleUserSearchEvent(userSearchEvent: UserSearchEvent) {

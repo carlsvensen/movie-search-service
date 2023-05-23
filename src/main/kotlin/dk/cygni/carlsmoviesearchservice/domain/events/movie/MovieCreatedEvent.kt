@@ -1,7 +1,7 @@
 package dk.cygni.carlsmoviesearchservice.domain.events.movie
 
 data class MovieCreatedEvent(
-    var tConst: String,
+    val tConst: String,
     val titleType: String,
     val primaryTitle: String,
     val originalTitle: String,

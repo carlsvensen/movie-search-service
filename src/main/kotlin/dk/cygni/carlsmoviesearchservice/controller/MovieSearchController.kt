@@ -1,12 +1,15 @@
 package dk.cygni.carlsmoviesearchservice.controller
 
 import dk.cygni.carlsmoviesearchservice.aggregate.UserAggregate
-import dk.cygni.carlsmoviesearchservice.commands.CreateUserCommand
+import dk.cygni.carlsmoviesearchservice.commands.user.CreateUserCommand
+import dk.cygni.carlsmoviesearchservice.commands.user.DeleteUserCommand
+import dk.cygni.carlsmoviesearchservice.commands.user.UpdateUserCommand
 import dk.cygni.carlsmoviesearchservice.domain.Movie
 import dk.cygni.carlsmoviesearchservice.domain.User
 import dk.cygni.carlsmoviesearchservice.queries.MovieByTconstQuery
 import dk.cygni.carlsmoviesearchservice.queries.MovieByTextQuery
-import dk.cygni.carlsmoviesearchservice.repository.elasticsearch.UserRepository
+import dk.cygni.carlsmoviesearchservice.queries.MovieSuggestionQuery
+import dk.cygni.carlsmoviesearchservice.queries.UserByUsernameQuery
 import dk.cygni.carlsmoviesearchservice.service.FileReaderService
 import dk.cygni.carlsmoviesearchservice.service.SearchService
 import org.springframework.web.bind.annotation.*
@@ -16,39 +19,45 @@ import org.springframework.web.bind.annotation.*
 class MovieSearchController(
     private val userAggregate: UserAggregate,
     private val fileReaderService: FileReaderService,
-    private val searchService: SearchService,
-    private val userRepository: UserRepository
+    private val searchService: SearchService
 ) {
     @PostMapping("/readfile/movie")
-    fun readMovieFile() =
-        fileReaderService.readMovieFile()
+    fun readMovieFile(@RequestParam filename: String) =
+        fileReaderService.readMovieFile(filename)
 
     @PostMapping("/readfile/rating")
-    fun readRatingFile() =
-        fileReaderService.readRatingFile()
+    fun readRatingFile(@RequestParam filename: String) =
+        fileReaderService.readRatingFile(filename)
 
     @PutMapping("/user")
-    fun putNewUser(@RequestParam username: String) =
-        userAggregate.handleCreateUserCommand(CreateUserCommand(username))
+    fun putNewUser(@RequestBody createUserCommand: CreateUserCommand) =
+        userAggregate.handleCreateUserCommand(createUserCommand)
+
+    @PostMapping("/user")
+    fun putNewUser(@RequestBody createUserCommand: UpdateUserCommand) =
+        userAggregate.handleUpdateUserCommand(createUserCommand)
 
     @GetMapping("/user")
-    fun getUser(@RequestParam userid: Long): User =
-        userRepository.findUserByUserid(userid)
-            .orElseThrow { IllegalArgumentException("No user with userid $userid exists.") }
+    fun getUser(@RequestBody userByUsernameQuery: UserByUsernameQuery): User =
+        searchService.searchForUser(userByUsernameQuery)
 
-    @GetMapping("/movie/title")
-    fun getMovieBySearchStringOnTitle(@RequestParam userid: Long, @RequestParam searchString: String): List<Movie> =
-        searchService.searchForMovieByTitle(userid, MovieByTextQuery(searchString))
+    @DeleteMapping("/user")
+    fun deleteUser(@RequestBody deleteUserCommand: DeleteUserCommand) =
+        userAggregate.handleDeleteUserCommand(deleteUserCommand)
 
     @GetMapping("/movie")
-    fun getMovieBySearchStringOnAnything(@RequestParam userid: Long, @RequestParam searchString: String): List<Movie> =
-        searchService.searchForMovieOnEveryting(userid, MovieByTextQuery(searchString))
+    fun getMovieBySearchStringOnAnything(@RequestBody movieByTextQuery: MovieByTextQuery): List<Movie> =
+        searchService.searchForMovieOnEveryting(movieByTextQuery)
 
-    @GetMapping("/movie/{tconst}")
-    fun getMovieByTconst(@RequestParam userid: Long, @PathVariable tconst: String): Movie =
-        searchService.searchForMovieByTconst(userid, MovieByTconstQuery(tconst))
+    @GetMapping("/movie/title")
+    fun getMovieBySearchStringOnTitle(@RequestBody movieByTextQuery: MovieByTextQuery): List<Movie> =
+        searchService.searchForMovieByTitle(movieByTextQuery)
+
+    @GetMapping("/movie/tconst")
+    fun getMovieByTconst(@RequestBody movieByTconstQuery: MovieByTconstQuery): Movie =
+        searchService.searchForMovieByTconst(movieByTconstQuery)
 
     @GetMapping("/movie/suggestion")
-    fun getSuggestions(@RequestParam userid: Long): List<Movie> =
-        searchService.getSuggestion(userid)
+    fun getSuggestions(@RequestBody movieSuggestionQuery: MovieSuggestionQuery): List<Movie> =
+        searchService.getSuggestion(movieSuggestionQuery)
 }

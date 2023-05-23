@@ -1,6 +1,6 @@
 package dk.cygni.carlsmoviesearchservice.aggregate
 
-import dk.cygni.carlsmoviesearchservice.commands.UpdateRatingCommand
+import dk.cygni.carlsmoviesearchservice.commands.movie.UpdateRatingCommand
 import dk.cygni.carlsmoviesearchservice.domain.events.movie.MovieEvent
 import dk.cygni.carlsmoviesearchservice.domain.events.movie.MovieUpdateRatingEvent
 import dk.cygni.carlsmoviesearchservice.repository.mongodb.MovieReadRepository

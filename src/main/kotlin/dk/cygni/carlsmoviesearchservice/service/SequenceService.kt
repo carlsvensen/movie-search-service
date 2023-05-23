@@ -1,6 +1,7 @@
 package dk.cygni.carlsmoviesearchservice.service
 
 import dk.cygni.carlsmoviesearchservice.domain.DatabaseSequence
+import dk.cygni.carlsmoviesearchservice.domain.SEQUENCE_NAME_USER
 import org.springframework.data.mongodb.core.FindAndModifyOptions
 import org.springframework.data.mongodb.core.MongoOperations
 import org.springframework.data.mongodb.core.query.Criteria
@@ -11,9 +12,9 @@ import org.springframework.stereotype.Service
 @Service
 class SequenceService(private val mongoOperations: MongoOperations) {
 
-    fun generateSequence(seqName: String?): Long {
+    fun generateUserId(): Long {
         val counter: DatabaseSequence? = mongoOperations.findAndModify(
-            Query.query(Criteria.where("_id").`is`(seqName)),
+            Query.query(Criteria.where("_id").`is`(SEQUENCE_NAME_USER)),
             Update().inc("seq", 1),
             FindAndModifyOptions.options().returnNew(true).upsert(true),
             DatabaseSequence::class.java

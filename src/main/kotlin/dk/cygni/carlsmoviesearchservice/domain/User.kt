@@ -3,6 +3,7 @@ package dk.cygni.carlsmoviesearchservice.domain
 import com.fasterxml.jackson.annotation.JsonIgnore
 import dk.cygni.carlsmoviesearchservice.domain.events.user.UserCreatedEvent
 import dk.cygni.carlsmoviesearchservice.domain.events.user.UserSearchEvent
+import dk.cygni.carlsmoviesearchservice.domain.events.user.UserUpdatedEvent
 import org.springframework.data.annotation.Id
 import org.springframework.data.annotation.Transient
 import org.springframework.data.elasticsearch.annotations.Document
@@ -18,11 +19,23 @@ class User {
     @JsonIgnore
     @Transient
     var allSearchedGenres: MutableMap<String, Int> = mutableMapOf()
+
+    @JsonIgnore
+    @Transient
+    var deleted: Boolean = false
 }
 
 fun User.applyUserCreatedEvent(event: UserCreatedEvent) {
     userid = event.userid
     username = event.username
+}
+
+fun User.applyUserUpdatedEvent(event: UserUpdatedEvent) {
+    username = event.username
+}
+
+fun User.applyUserDeletedEvent() {
+    deleted = true
 }
 
 fun User.applyUserSearchEvent(event: UserSearchEvent) {
@@ -40,9 +53,7 @@ fun User.filterFavouriteGenres() {
         allSearchedGenres
             .toList()
             .sortedByDescending { it.second }
-            //.map { it.first } // TODO: Kanskje dette fungerer ???
-            .toMap().keys // FIXME: Burde ikke være nødvendig med flere toList
-            .toList()
+            .map { it.first }
 
     if (favoriteGenres.size > 3) {
         favoriteGenres = favoriteGenres.subList(0, 3)

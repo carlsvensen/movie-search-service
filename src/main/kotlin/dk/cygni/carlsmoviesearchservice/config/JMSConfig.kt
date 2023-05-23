@@ -10,12 +10,14 @@ import org.springframework.jms.config.DefaultJmsListenerContainerFactory
 import org.springframework.stereotype.Service
 import org.springframework.util.ErrorHandler
 
+const val MOVIE_QUEUE = "moviequeue"
+const val USER_QUEUE = "userqueue"
 
 @EnableJms
 @Configuration
 class JMSConfig {
 
-    //@Bean
+    @Bean
     fun jmsListenerContainerFactory(
         sampleJmsErrorHandler: SampleJmsErrorHandler,
         @Qualifier("jmsConnectionFactory") connectionFactory: ConnectionFactory
@@ -28,8 +30,7 @@ class JMSConfig {
     }
 }
 
-
-//@Service
+@Service
 class SampleJmsErrorHandler : ErrorHandler {
     private val logger = KotlinLogging.logger {}
 

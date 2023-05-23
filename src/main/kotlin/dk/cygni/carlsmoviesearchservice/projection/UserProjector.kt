@@ -1,17 +1,13 @@
 package dk.cygni.carlsmoviesearchservice.projection
 
-import dk.cygni.carlsmoviesearchservice.domain.User
-import dk.cygni.carlsmoviesearchservice.domain.applyUserCreatedEvent
-import dk.cygni.carlsmoviesearchservice.domain.applyUserSearchEvent
-import dk.cygni.carlsmoviesearchservice.domain.events.user.UserCreatedEvent
-import dk.cygni.carlsmoviesearchservice.domain.events.user.UserEvent
-import dk.cygni.carlsmoviesearchservice.domain.events.user.UserSearchEvent
-import dk.cygni.carlsmoviesearchservice.domain.filterFavouriteGenres
-import dk.cygni.carlsmoviesearchservice.queries.UserByIdQuery
+import dk.cygni.carlsmoviesearchservice.config.USER_QUEUE
+import dk.cygni.carlsmoviesearchservice.domain.*
+import dk.cygni.carlsmoviesearchservice.domain.events.user.*
 import dk.cygni.carlsmoviesearchservice.repository.elasticsearch.UserRepository
 import dk.cygni.carlsmoviesearchservice.repository.mongodb.UserReadRepository
 import org.springframework.jms.annotation.JmsListener
 import org.springframework.stereotype.Component
+import java.lang.IllegalStateException
 
 @Component
 class UserProjector(
@@ -19,32 +15,30 @@ class UserProjector(
     private val userRepository: UserRepository
 ) {
 
-    @JmsListener(destination = "\${dk.cygni.carlsmoviesearchservice.queuename.user}")
+    @JmsListener(destination = USER_QUEUE)
     fun queueListener(userid: Long) {
-        userRepository.save(project(UserByIdQuery(userid)))
+        project(userid).run {
+            when (this.deleted) {
+                true -> userRepository.delete(this)
+                false -> userRepository.save(this)
+            }
+        }
     }
 
-    fun project(userByIdQuery: UserByIdQuery): User {
-        val allUserEvents: List<UserEvent> = userReadRepository.findByUserid(userByIdQuery.userid)
-
-        // TODO: Må finnes en CreateUser i denne lista
-        if (allUserEvents.isNotEmpty()) {
-            val user = User()
-            allUserEvents
+    fun project(userid: Long): User =
+        User().also {
+            userReadRepository.findByUserid(userid)
+                .ifEmpty { throw IllegalStateException("No user with userid $userid found") }
                 .sortedBy { it.created }
                 .forEach { userEvent ->
                     when (userEvent) {
-                        is UserCreatedEvent -> user.applyUserCreatedEvent(userEvent)
-                        is UserSearchEvent -> user.applyUserSearchEvent(userEvent)
+                        is UserCreatedEvent -> it.applyUserCreatedEvent(userEvent)
+                        is UserUpdatedEvent -> it.applyUserUpdatedEvent(userEvent)
+                        is UserSearchEvent -> it.applyUserSearchEvent(userEvent)
+                        is UserDeletedEvent -> it.applyUserDeletedEvent()
                     }
                 }
-
-            user.filterFavouriteGenres()
-
-            return user
-
-        } else {
-            throw IllegalArgumentException("No user with userid ${userByIdQuery.userid} found")
+            it.filterFavouriteGenres()
         }
-    }
+
 }
