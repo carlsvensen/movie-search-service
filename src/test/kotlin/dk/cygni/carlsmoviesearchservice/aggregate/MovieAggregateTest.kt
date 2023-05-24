@@ -38,7 +38,7 @@ class MovieAggregateTest {
 
         whenever(movieReadRepository.findByTconst(tconst)).thenReturn(listOf(movieEvent, movieEvent2))
 
-        movieAggregate.handleUpdateRating(updateRatingCommand)
+        movieAggregate.handleUpdateRatingCommand(updateRatingCommand)
 
         verify(movieWriteRepository, never()).insert(any<MovieEvent>())
     }
@@ -51,7 +51,7 @@ class MovieAggregateTest {
 
         whenever(movieReadRepository.findByTconst(tconst)).thenReturn(listOf(movieEvent, movieEvent2))
 
-        movieAggregate.handleUpdateRating(updateRatingCommand)
+        movieAggregate.handleUpdateRatingCommand(updateRatingCommand)
 
         verify(movieWriteRepository, times(1)).insert(any<MovieEvent>())
     }

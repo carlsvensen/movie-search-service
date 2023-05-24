@@ -66,6 +66,6 @@ interface MovieRepository : ElasticsearchRepository<Movie, String> {
             "      \"boost_mode\": \"replace\"" +
             "    }" +
             "  }")
-    fun findRandomMovieByGenreAndMinRating(genre: String, averageRating: Int): Movie
+    fun findRandomMovieByGenreAndMinRating(genre: String, averageRating: Int): Optional<Movie>
 
 }

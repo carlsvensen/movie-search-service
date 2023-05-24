@@ -1,5 +1,6 @@
 package dk.cygni.carlsmoviesearchservice.controller
 
+import mu.KotlinLogging
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -11,11 +12,13 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 @ControllerAdvice
 class RestResponseEntityExceptionHandler : ResponseEntityExceptionHandler() {
 
+    private val log = KotlinLogging.logger {}
+
     @ExceptionHandler(value = [Exception::class])
     fun handleUnhandledException(
         ex: Exception, request: WebRequest
     ): ResponseEntity<Any?>? {
-        logger.error { "An exception was thrown: ${ex.message}. Exception: $ex" }
+        log.error { "An exception was thrown: ${ex.message}. Exception: $ex" }
 
         return handleExceptionInternal(
             ex, "Unknown error occurred", HttpHeaders(), HttpStatus.INTERNAL_SERVER_ERROR, request

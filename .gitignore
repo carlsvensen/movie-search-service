@@ -34,3 +34,5 @@ build/
 
 *.tsv
 *.gz
+
+.DS_Store

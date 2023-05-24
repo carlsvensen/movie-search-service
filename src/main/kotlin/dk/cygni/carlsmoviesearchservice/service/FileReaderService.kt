@@ -30,8 +30,8 @@ class FileReaderService(private val movieAggregate: MovieAggregate) {
                     .forEach { line -> handleMovieLine(line) }
 
             } catch (e: Exception) {
-                logger.error { "Error while reading movie file ${e.message}" }
-
+                logger.error { "Error while reading movie file $filename. Exception: $e" }
+                throw e
             } finally {
                 movieState.finishReading()
             }
@@ -49,8 +49,8 @@ class FileReaderService(private val movieAggregate: MovieAggregate) {
                     .forEach { line -> handleRatingLine(line) }
 
             } catch (e: Exception) {
-                logger.error { "Error while reading rating file ${e.message}" }
-
+                logger.error { "Error while reading rating file $filename. Exception: $e" }
+                throw e
             } finally {
                 ratingState.finishReading()
             }
@@ -59,7 +59,7 @@ class FileReaderService(private val movieAggregate: MovieAggregate) {
 
     private fun handleMovieLine(line: String) {
         line.split("\t").run {
-            movieAggregate.handleUpdateMovie(
+            movieAggregate.handleCreateMovieCommand(
                 CreateMovieCommand(
                     tconst = this[0],
                     titleType = readLineAndDiscardEmptyPlaceholder(this[1]),
@@ -78,7 +78,7 @@ class FileReaderService(private val movieAggregate: MovieAggregate) {
 
     private fun handleRatingLine(line: String) {
         line.split("\t").run {
-            movieAggregate.handleUpdateRating(
+            movieAggregate.handleUpdateRatingCommand(
                 UpdateRatingCommand(
                     tconst = this[0],
                     averageRating = this[1].toDouble(),
@@ -118,8 +118,8 @@ private class FileReaderState(private val filetype: String) {
     fun finishReading() {
         readingFile.compareAndSet(true, false)
         logger.info { "$filetype - Finished reading $counter elements in ${(System.currentTimeMillis() - startTime) / 1000} sec" }
-
     }
+
     fun incrementCounterAndlogProgress() {
         counter++
         if (counter % 1000 == 0) {

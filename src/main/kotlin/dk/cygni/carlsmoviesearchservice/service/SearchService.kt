@@ -23,6 +23,8 @@ class SearchService(
     private val userRepository: UserRepository
 ) {
 
+    fun listAllUsers(): List<User> = userRepository.findAll().toList()
+
     fun searchForUser(userByUsernameQuery: UserByUsernameQuery): User =
         userRepository.findUserByUsername(userByUsernameQuery.username)
             .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "No user with username ${userByUsernameQuery.username} exists.") }
@@ -52,7 +54,10 @@ class SearchService(
 
         return mutableListOf<Movie>().also {
             for (i in user.favoriteGenres.indices) {
-                it.add(movieRepository.findRandomMovieByGenreAndMinRating(user.favoriteGenres[i], 8))
+                it.add(
+                    movieRepository.findRandomMovieByGenreAndMinRating(user.favoriteGenres[i], 8)
+                        .orElse(movieRepository.findRandomMovieByGenreAndMinRating(user.favoriteGenres[i], 5)
+                            .orElse(null)))
             }
         }
     }

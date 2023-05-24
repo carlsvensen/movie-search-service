@@ -37,6 +37,9 @@ class MovieSearchController(
     fun putNewUser(@RequestBody createUserCommand: UpdateUserCommand) =
         userAggregate.handleUpdateUserCommand(createUserCommand)
 
+    @GetMapping("/users")
+    fun getUsers(): List<User> = searchService.listAllUsers()
+
     @GetMapping("/user")
     fun getUser(@RequestBody userByUsernameQuery: UserByUsernameQuery): User =
         searchService.searchForUser(userByUsernameQuery)
