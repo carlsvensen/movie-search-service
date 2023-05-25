@@ -19,20 +19,17 @@ class MovieAggregate(
     private val logger = KotlinLogging.logger {}
 
     fun handleCreateMovieCommand(createMovieCommand: CreateMovieCommand) {
-        val existingMovieEvents =
+        val existingMovieCreatedEvents =
             movieReadRepository.findByTconst(createMovieCommand.tconst)
                 .filterIsInstance<MovieCreatedEvent>()
         val newMovieEvent = createMovieCommand.toMovieEvent()
 
         when {
-            existingMovieEvents.isEmpty() ->
+            existingMovieCreatedEvents.isEmpty() ->
                 movieWriteRepository.insert(newMovieEvent)
 
-            existingMovieEvents.maxByOrNull { it.created }!! != newMovieEvent ->
-                throw IllegalStateException("Duplicate createMovieCommand for tconst ${createMovieCommand.tconst}")
-
             else ->
-                logger.debug { "No movie changes for ${newMovieEvent.tconst}" }
+                throw IllegalStateException("Duplicate createMovieCommand for tconst ${createMovieCommand.tconst}")
         }
     }
 
