@@ -7,7 +7,7 @@ spring:
   data:
     mongodb:
       auto-index-creation: true
-      uri: mongodb://localhost:26016/movies
+      uri: mongodb://localhost:27017/movies
   artemis:
     mode: embedded
     broker-url: tcp://localhost:9876
