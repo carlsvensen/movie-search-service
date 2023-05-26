@@ -11,7 +11,7 @@
     </parent>
 
     <groupId>dk.cygni</groupId>
-    <artifactId>carls-movie-search-service</artifactId>
+    <artifactId>movie-search-service</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>carls-movie-search-service</name>
     <description>carls-movie-search-service</description>
